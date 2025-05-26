@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Report: MCP & A2A Cloud-Native Security</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Visualization & Content Choices:
+        - Report Info: MCP/A2A Definitions & Synergy (Sec 2) -> Goal: Inform & Compare -> Viz/Presentation: Tabbed content for MCP/A2A details, HTML/CSS diagram for synergy (HR example), Interactive comparison table (Table 1) -> Interaction: Click tabs, hover on diagram elements -> Justification: Clear separation and direct comparison of complex protocols. -> Library/Method: HTML/CSS/JS.
+        - Report Info: MCP/A2A Risks (Sec 4, Table 2) -> Goal: Inform & Explore -> Viz/Presentation: Interactive cards for each risk -> Interaction: Click card to expand details (scenario, vectors) -> Justification: Highlights key threats in an engaging way. -> Library/Method: HTML/CSS/JS.
+        - Report Info: STRIDE Threat Analysis (Sec 5.2, Table 3) -> Goal: Organize & Analyze -> Viz/Presentation: Interactive HTML/CSS matrix -> Interaction: Select STRIDE category to see MCP/A2A examples and mitigations -> Justification: Makes the dense STRIDE table more accessible and interactive. -> Library/Method: HTML/CSS/JS.
+        - Report Info: Security Controls (Sec 6, Table 4) -> Goal: Inform & Guide -> Viz/Presentation: Filterable/Sortable HTML table or categorized accordion list, Bar Chart summarizing control domains -> Interaction: Filter by control domain, view chart -> Justification: Allows users to find relevant controls easily and see distribution. -> Library/Method: HTML/CSS/JS, Chart.js.
+        - Report Info: Threat Modeling Workflow (Sec 5.4) -> Goal: Inform & Explain -> Viz/Presentation: HTML/CSS step-by-step diagram -> Interaction: Hover/click steps for details -> Justification: Visualizes the process clearly. -> Library/Method: HTML/CSS/JS.
+        CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .content-section { display: none; }
+        .content-section.active { display: block; }
+        .nav-link { cursor: pointer; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .tab-button.active { background-color: #0e7490; color: white; }
+        .accordion-content { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-out; }
+        .accordion-button.active + .accordion-content { max-height: 1000px; /* Adjust as needed */ }
+        .diagram-box { border: 1px solid #a8a29e; padding: 8px; margin: 4px; text-align: center; background-color: #f5f5f4; border-radius: 0.375rem; }
+        .diagram-arrow { display: flex; align-items: center; justify-content: center; margin: 0 4px; }
+        .chart-container { position: relative; width: 100%; max-width: 700px; margin-left: auto; margin-right: auto; height: 350px; max-height: 400px; }
+        @media (min-width: 768px) { .chart-container { height: 400px; } }
+    </style>
+</head>
+<body class="bg-stone-100 text-neutral-800">
+
+    <header class="bg-sky-800 text-white p-4 shadow-md sticky top-0 z-50">
+        <div class="container mx-auto flex flex-wrap justify-between items-center">
+            <h1 class="text-xl md:text-2xl font-bold">MCP & A2A Cloud-Native Security</h1>
+            <nav class="mt-2 md:mt-0">
+                <ul class="flex flex-wrap space-x-2 md:space-x-4 text-sm md:text-base">
+                    <li><a class="nav-link hover:text-amber-300" data-target="overview">Overview</a></li>
+                    <li><a class="nav-link hover:text-amber-300" data-target="protocols">Protocols</a></li>
+                    <li><a class="nav-link hover:text-amber-300" data-target="cloud-native">Cloud-Native</a></li>
+                    <li><a class="nav-link hover:text-amber-300" data-target="threats">Threats</a></li>
+                    <li><a class="nav-link hover:text-amber-300" data-target="modeling">Threat Modeling</a></li>
+                    <li><a class="nav-link hover:text-amber-300" data-target="mitigations">Mitigations</a></li>
+                    <li><a class="nav-link hover:text-amber-300" data-target="future">Future & Conclusion</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container mx-auto p-4 md:p-8">
+        <section id="overview" class="content-section active">
+            <h2 class="text-2xl font-bold text-sky-700 mb-4">Executive Summary & Overview</h2>
+            <div class="bg-white p-6 rounded-lg shadow space-y-4">
+                <p class="text-lg">This interactive application explores the critical security considerations for Model Context Protocol (MCP) and Agent-to-Agent (A2A) communication, especially within cloud-native architectures. These protocols are foundational for advanced AI agent capabilities, enabling autonomous interaction with tools, data, and other agents.</p>
+                <p>MCP, developed by Anthropic, standardizes how AI agents discover and use external tools. A2A, from Google, facilitates direct communication between independent AI agents. Their synergy is powerful but introduces novel security challenges like prompt injection, tool poisoning, and agent impersonation, amplified by the complexities of cloud environments.</p>
+                <p>This exploration delves into these protocols, their inherent risks, systematic threat modeling approaches (STRIDE, MAESTRO), and multi-layered mitigation strategies. The goal is to foster a deeper understanding and promote secure adoption of these transformative AI technologies.</p>
+                <div class="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                    <h3 class="text-lg font-semibold text-amber-700">Key Report Insights:</h3>
+                    <ul class="list-disc list-inside mt-2 text-neutral-700">
+                        <li>MCP as the "USB-C of AI" highlights universality and potential for widespread vulnerabilities.</li>
+                        <li>Cloud-native deployments (microservices, containers) require specific security adaptations.</li>
+                        <li>A multi-layered "secure by design" approach is crucial.</li>
+                        <li>AI-specific threat modeling (e.g., MAESTRO) is necessary beyond traditional methods.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section id="protocols" class="content-section">
+            <h2 class="text-2xl font-bold text-sky-700 mb-4">Understanding the Protocols</h2>
+            <div class="bg-white p-6 rounded-lg shadow">
+                <p class="mb-6 text-lg">This section provides a detailed look at the Model Context Protocol (MCP) and the Agent-to-Agent (A2A) protocol. Understanding their definitions, purposes, architectures, operational flows, and how they complement each other is essential for grasping their security implications.</p>
+                <div class="mb-4 border-b border-stone-300">
+                    <nav class="flex space-x-1" aria-label="Tabs">
+                        <button class="tab-button active hs-tab-active:bg-sky-700 hs-tab-active:text-white py-3 px-4 inline-flex items-center gap-x-2 bg-transparent text-sm font-medium text-center text-neutral-600 hover:text-sky-700 rounded-lg disabled:opacity-50 disabled:pointer-events-none" data-tab="mcp">Model Context Protocol (MCP)</button>
+                        <button class="tab-button hs-tab-active:bg-sky-700 hs-tab-active:text-white py-3 px-4 inline-flex items-center gap-x-2 bg-transparent text-sm font-medium text-center text-neutral-600 hover:text-sky-700 rounded-lg disabled:opacity-50 disabled:pointer-events-none" data-tab="a2a">Agent-to-Agent (A2A)</button>
+                        <button class="tab-button hs-tab-active:bg-sky-700 hs-tab-active:text-white py-3 px-4 inline-flex items-center gap-x-2 bg-transparent text-sm font-medium text-center text-neutral-600 hover:text-sky-700 rounded-lg disabled:opacity-50 disabled:pointer-events-none" data-tab="synergy">MCP & A2A Synergy</button>
+                    </nav>
+                </div>
+
+                <div id="mcp-content" class="tab-content active space-y-4">
+                    <h3 class="text-xl font-semibold text-sky-600">Model Context Protocol (MCP)</h3>
+                    <p>MCP enables AI agents to dynamically discover, inspect, and invoke tools (APIs, databases, etc.) without custom code. It acts as a common language for AI interaction with external resources.</p>
+                    <h4 class="font-semibold">Core Architecture:</h4>
+                    <div class="flex flex-col md:flex-row items-center justify-around p-4 border border-stone-200 rounded-lg bg-stone-50">
+                        <div class="diagram-box">MCP Host <span class="block text-xs">(e.g., AI App, Orchestrator)</span></div>
+                        <div class="diagram-arrow text-2xl mx-2 my-2 md:my-0">&rarr;</div>
+                        <div class="diagram-box">MCP Client <span class="block text-xs">(Manages communication)</span></div>
+                        <div class="diagram-arrow text-2xl mx-2 my-2 md:my-0">&harr;</div>
+                        <div class="diagram-box">MCP Server <span class="block text-xs">(Exposes tools via JSON schemas)</span></div>
+                    </div>
+                    <p><span class="font-semibold">Operational Flow:</span> Agent (via MCP Client) connects to MCP Server &rarr; Server exposes tools (defined by JSON schemas) &rarr; Agent selects and invokes tools.</p>
+                    <p><span class="font-semibold">Server Types:</span> stdio (local), HTTP over SSE (remote, real-time), Streamable HTTP (remote, streaming).</p>
+                    <p class="italic text-neutral-600">MCP is a coordination layer, not a replacement for REST/GraphQL. It can wrap existing APIs, but this means it can also inherit and amplify their risks if not secured.</p>
+                </div>
+
+                <div id="a2a-content" class="tab-content space-y-4">
+                    <h3 class="text-xl font-semibold text-sky-600">Agent-to-Agent (A2A) Protocol</h3>
+                    <p>Google's A2A protocol is an open standard for secure, structured communication and task coordination directly between independent AI agents, regardless of their origin.</p>
+                    <h4 class="font-semibold">Key Components:</h4>
+                    <ul class="list-disc list-inside space-y-1">
+                        <li><span class="font-semibold">Agent Cards:</span> Public JSON files (`/.well-known/agent.json`) acting as digital business cards (capabilities, endpoint, security). Prone to spoofing if not validated.</li>
+                        <li><span class="font-semibold">Task Management:</span> Interactions organized around "Tasks" with defined lifecycles.</li>
+                        <li><span class="font-semibold">Messages and Artifacts:</span> Flexible messages with multiple content parts; task outputs as "Artifacts".</li>
+                        <li><span class="font-semibold">Communication Channels:</span> JSON-RPC over HTTP/S, Server-Sent Events (SSE), webhooks.</li>
+                    </ul>
+                    <p class="italic text-neutral-600">A2A aims for a "universal language," meaning protocol vulnerabilities could have widespread impact. It includes security features like OAuth 2.0 and payload signing.</p>
+                </div>
+
+                <div id="synergy-content" class="tab-content space-y-4">
+                    <h3 class="text-xl font-semibold text-sky-600">MCP & A2A Synergy</h3>
+                    <p>MCP and A2A are complementary: MCP provides "vertical integration" (agent to tools/data), while A2A provides "horizontal integration" (agent to agent).</p>
+                    <h4 class="font-semibold">Example: HR Onboarding Workflow</h4>
+                    <div class="p-4 border border-stone-200 rounded-lg bg-stone-50 space-y-3">
+                        <div class="diagram-box w-full md:w-1/2 mx-auto">Orchestrator Agent (Overall Process)</div>
+                        <div class="flex justify-center items-center"><div class="diagram-arrow text-2xl">&darr; <span class="text-sm ml-1">(A2A Communication)</span></div></div>
+                        <div class="flex flex-col md:flex-row justify-around items-start">
+                            <div class="diagram-box flex-1 mb-2 md:mb-0">HR Agent <span class="block text-xs">(Create Record)</span></div>
+                            <div class="diagram-box flex-1 mb-2 md:mb-0">IT Agent <span class="block text-xs">(Provision Accounts)</span></div>
+                            <div class="diagram-box flex-1">Facilities Agent <span class="block text-xs">(Prep Desk)</span></div>
+                        </div>
+                        <div class="flex justify-center items-center mt-3"><div class="diagram-arrow text-2xl">&darr; <span class="text-sm ml-1">(IT Agent uses MCP)</span></div></div>
+                        <div class="flex flex-col md:flex-row justify-around items-start mt-1">
+                             <div class="diagram-box flex-1 mb-2 md:mb-0">MCP Tool: Identity System</div>
+                             <div class="diagram-box flex-1">MCP Resource: Software Info</div>
+                        </div>
+                    </div>
+                    <p class="italic text-neutral-600">This layered approach is powerful but creates complex dependency chains. A compromise at the MCP layer within one agent can be exploited via A2A, affecting the broader system.</p>
+                    
+                    <h4 class="font-semibold mt-6">Comparative Overview (Table 1 from Report)</h4>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-stone-300">
+                            <thead class="bg-stone-100">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-neutral-600 uppercase tracking-wider">Feature</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-neutral-600 uppercase tracking-wider">Model Context Protocol (MCP)</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-neutral-600 uppercase tracking-wider">Agent-to-Agent (A2A) Protocol</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-stone-200">
+                                <tr><td class="px-6 py-4 font-semibold">Purpose</td><td class="px-6 py-4">Standardize AI agent interaction with external tools, data, and services.</td><td class="px-6 py-4">Enable direct, secure communication and task coordination between independent AI agents.</td></tr>
+                                <tr><td class="px-6 py-4 font-semibold">Scope</td><td class="px-6 py-4">Interaction between a single AI agent/model and its environment.</td><td class="px-6 py-4">Interaction between multiple, potentially heterogeneous AI agents.</td></tr>
+                                <tr><td class="px-6 py-4 font-semibold">Primary Interaction</td><td class="px-6 py-4">Agent (client) discovering, inspecting, and invoking tools exposed by an MCP server.</td><td class="px-6 py-4">Agents discovering each other (via Agent Cards) and exchanging messages to manage tasks.</td></tr>
+                                <tr><td class="px-6 py-4 font-semibold">Key Components</td><td class="px-6 py-4">MCP Host, Client, Server, Tools (JSON schema), Resources, Prompts.</td><td class="px-6 py-4">Agent Cards, Tasks, Messages (Parts), Artifacts, A2A Servers/Clients.</td></tr>
+                                <tr><td class="px-6 py-4 font-semibold">Integration Type</td><td class="px-6 py-4">Vertical integration (agent to tools/data).</td><td class="px-6 py-4">Horizontal integration (agent to agent).</td></tr>
+                                <tr><td class="px-6 py-4 font-semibold">Originator</td><td class="px-6 py-4">Anthropic</td><td class="px-6 py-4">Google</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="cloud-native" class="content-section">
+            <h2 class="text-2xl font-bold text-sky-700 mb-4">Cloud-Native Imperatives</h2>
+            <div class="bg-white p-6 rounded-lg shadow space-y-4">
+                <p class="text-lg">Deploying MCP and A2A in cloud-native architectures (microservices, containers, API gateways) introduces specific security needs. Strategies must adapt to these dynamic paradigms.</p>
+                
+                <div>
+                    <h3 class="text-xl font-semibold text-sky-600 mb-2">Architectural Considerations</h3>
+                    <ul class="list-disc list-inside space-y-1">
+                        <li><span class="font-semibold">Microservices:</span> Distributed agents and MCP servers increase communication paths needing security, complicating visibility.</li>
+                        <li><span class="font-semibold">Containers:</span> Ephemeral nature demands robust secret management (e.g., Kubernetes Secrets, Vault) and automated rotation. Avoid hardcoded secrets.</li>
+                        <li><span class="font-semibold">API Gateways:</span> Crucial control point for HTTP-based MCP servers (authentication, authorization, rate limiting, WAAS integration). Not a panacea; defense-in-depth is key. mTLS is critical for service-to-service authentication.</li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h3 class="text-xl font-semibold text-sky-600 mb-2">Platform-Specific Enhancements (e.g., Windows 11 MCP Security)</h3>
+                    <p>Microsoft's MCP Security Architecture in Windows 11 emphasizes user control and least privilege:</p>
+                    <ul class="list-disc list-inside space-y-1">
+                        <li><span class="font-semibold">Proxy-Mediated Communication:</span> Centralized policy enforcement, user consent, auditing. Suggests MCP may need external enforcement layers.</li>
+                        <li><span class="font-semibold">Tool-Level Authorization:</span> Explicit user approval for client-tool pairings.</li>
+                        <li><span class="font-semibold">Central Server Registry:</span> For trusted MCP servers meeting security criteria.</li>
+                        <li><span class="font-semibold">Server Security Requirements:</span> Code signing, immutable tool definitions, security testing, package identity, declared privileges.</li>
+                    </ul>
+                    <p class="italic mt-2">OS-level enhancements are beneficial but risk fragmentation if varying security models impact cross-platform interoperability.</p>
+                </div>
+
+                <div>
+                    <h3 class="text-xl font-semibold text-sky-600 mb-2">Secure Deployment in Cloud Environments (AWS, Azure, GCP, Edge)</h3>
+                     <ul class="list-disc list-inside space-y-1">
+                        <li><span class="font-semibold">Network Exposure Control:</span> Strict use of security groups, network segmentation, firewalls.</li>
+                        <li><span class="font-semibold">Isolation of Runtime Environments:</span> Limit blast radius using containers, sandboxes, virtual networks.</li>
+                        <li><span class="font-semibold">Cloud-Native Security Services:</span> Leverage IAM, KMS, logging/monitoring services.</li>
+                        <li><span class="font-semibold">Edge Deployments (e.g., Cloudflare):</span> Offers performance but distributes attack surface, demanding robust remote management and consistent policy enforcement.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section id="threats" class="content-section">
+            <h2 class="text-2xl font-bold text-sky-700 mb-4">The Threat Landscape</h2>
+            <div class="bg-white p-6 rounded-lg shadow">
+                <p class="mb-6 text-lg">The combination of MCP for tool interaction and A2A for inter-agent communication creates a complex threat landscape. This section explores risks in each protocol and their compounded dangers.</p>
+                <div class="mb-4 border-b border-stone-300">
+                    <nav class="flex space-x-1" aria-label="Tabs">
+                        <button class="tab-button active hs-tab-active:bg-sky-700 hs-tab-active:text-white py-3 px-4 inline-flex items-center gap-x-2 bg-transparent text-sm font-medium text-center text-neutral-600 hover:text-sky-700 rounded-lg" data-tab="mcp-risks">MCP Risks</button>
+                        <button class="tab-button hs-tab-active:bg-sky-700 hs-tab-active:text-white py-3 px-4 inline-flex items-center gap-x-2 bg-transparent text-sm font-medium text-center text-neutral-600 hover:text-sky-700 rounded-lg" data-tab="a2a-vulns">A2A Vulnerabilities</button>
+                        <button class="tab-button hs-tab-active:bg-sky-700 hs-tab-active:text-white py-3 px-4 inline-flex items-center gap-x-2 bg-transparent text-sm font-medium text-center text-neutral-600 hover:text-sky-700 rounded-lg" data-tab="compounded-risks">Compounded Risks</button>
+                    </nav>
+                </div>
+
+                <div id="mcp-risks-content" class="tab-content active space-y-4">
+                    <h3 class="text-xl font-semibold text-sky-600">Inherent Security Risks in MCP (from Table 2)</h3>
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <div class="accordion-item bg-stone-50 p-4 rounded-lg border border-stone-200">
+                            <button class="accordion-button w-full text-left font-semibold text-lg text-sky-700 hover:text-sky-800 flex justify-between items-center">Prompt Injection <span>&#9660;</span></button>
+                            <div class="accordion-content mt-2 text-sm">
+                                <p><strong>Description:</strong> Malicious prompts trick LLM into unsafe MCP tool calls.</p>
+                                <p><strong>Impact (C,I,A):</strong> Confidentiality, Integrity, Availability.</p>
+                                <p><strong>Scenario:</strong> User input "delete all files in /data" passed to LLM, invokes file system tool.</p>
+                                <p><strong>Vectors:</strong> Crafted user inputs, manipulated context data.</p>
+                            </div>
+                        </div>
+                         <div class="accordion-item bg-stone-50 p-4 rounded-lg border border-stone-200">
+                            <button class="accordion-button w-full text-left font-semibold text-lg text-sky-700 hover:text-sky-800 flex justify-between items-center">Tool Description Poisoning <span>&#9660;</span></button>
+                            <div class="accordion-content mt-2 text-sm">
+                                <p><strong>Description:</strong> Attacker embeds malicious instructions in MCP tool metadata trusted by AI.</p>
+                                <p><strong>Impact (C,I):</strong> Confidentiality, Integrity.</p>
+                                <p><strong>Scenario:</strong> "summarize_text" tool has hidden instructions to exfiltrate text. LLM uses it, data leaked.</p>
+                                <p><strong>Vectors:</strong> Compromised MCP server, malicious public MCP server, manipulated tool registration.</p>
+                            </div>
+                        </div>
+                        <div class="accordion-item bg-stone-50 p-4 rounded-lg border border-stone-200">
+                            <button class="accordion-button w-full text-left font-semibold text-lg text-sky-700 hover:text-sky-800 flex justify-between items-center">Credential Leaks/Data Exfiltration <span>&#9660;</span></button>
+                            <div class="accordion-content mt-2 text-sm">
+                                <p><strong>Description:</strong> MCP tools access/handle sensitive data (API keys, PII) which gets exposed.</p>
+                                <p><strong>Impact (C):</strong> Confidentiality.</p>
+                                <p><strong>Scenario:</strong> LLM tricked into calling MCP tool that reads config file with API keys and includes them in output.</p>
+                                <p><strong>Vectors:</strong> Prompt injection, insecure tool implementation, compromised MCP server.</p>
+                            </div>
+                        </div>
+                        <div class="accordion-item bg-stone-50 p-4 rounded-lg border border-stone-200">
+                            <button class="accordion-button w-full text-left font-semibold text-lg text-sky-700 hover:text-sky-800 flex justify-between items-center">MCP Server Compromise <span>&#9660;</span></button>
+                            <div class="accordion-content mt-2 text-sm">
+                                <p><strong>Description:</strong> Breach of an MCP server grants access to all its connected service tokens and capabilities.</p>
+                                <p><strong>Impact (C,I,A):</strong> Confidentiality, Integrity, Availability.</p>
+                                <p><strong>Scenario:</strong> Attacker exploits vulnerability in MCP server, steals OAuth tokens for Gmail, Drive, etc.</p>
+                                <p><strong>Vectors:</strong> Software vulnerabilities, misconfigurations, stolen server credentials.</p>
+                            </div>
+                        </div>
+                        <div class="accordion-item bg-stone-50 p-4 rounded-lg border border-stone-200">
+                            <button class="accordion-button w-full text-left font-semibold text-lg text-sky-700 hover:text-sky-800 flex justify-between items-center">Lack of Authentication/AuthZ <span>&#9660;</span></button>
+                            <div class="accordion-content mt-2 text-sm">
+                                <p><strong>Description:</strong> Unauthorized clients access MCP servers/tools, or clients connect to rogue servers.</p>
+                                <p><strong>Impact (C,I,A):</strong> Confidentiality, Integrity, Availability.</p>
+                                <p><strong>Scenario:</strong> Unauthenticated attacker directly calls admin-level MCP tool on exposed server.</p>
+                                <p><strong>Vectors:</strong> Missing/weak auth checks, improper access control, failure to validate server identity.</p>
+                            </div>
+                        </div>
+                        <div class="accordion-item bg-stone-50 p-4 rounded-lg border border-stone-200">
+                            <button class="accordion-button w-full text-left font-semibold text-lg text-sky-700 hover:text-sky-800 flex justify-between items-center">Token Theft & Account Takeover <span>&#9660;</span></button>
+                            <div class="accordion-content mt-2 text-sm">
+                                <p><strong>Description:</strong> Stolen OAuth tokens from MCP server used to access user accounts on external services.</p>
+                                <p><strong>Impact (C,I,A):</strong> Confidentiality, Integrity, Availability.</p>
+                                <p><strong>Scenario:</strong> Attacker obtains Gmail OAuth token from compromised MCP server, accesses victim's email.</p>
+                                <p><strong>Vectors:</strong> MCP server compromise, insecure token storage, OAuth flow vulnerabilities.</p>
+                            </div>
+                        </div>
+                        <p class="md:col-span-2 italic text-neutral-600">Other MCP risks include: Malicious/Compromised MCP Servers, Protocol Design Vulnerabilities, Implementation-Level Flaws, Excessive Permission Scope.</p>
+                    </div>
+                </div>
+
+                <div id="a2a-vulns-content" class="tab-content space-y-4">
+                    <h3 class="text-xl font-semibold text-sky-600">A2A Communication Vulnerabilities</h3>
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <div class="bg-stone-50 p-3 rounded border border-stone-200"><strong>Agent Card Spoofing/Poisoning:</strong> Forged or compromised `agent.json` files leading to connections with malicious agents.</div>
+                        <div class="bg-stone-50 p-3 rounded border border-stone-200"><strong>A2A Server Impersonation:</strong> DNS spoofing or infrastructure compromise redirecting traffic to fake A2A servers.</div>
+                        <div class="bg-stone-50 p-3 rounded border border-stone-200"><strong>Unauthorized Agent Impersonation:</strong> Weak auth or stolen/forged tokens allowing attacker to act as legitimate agent.</div>
+                        <div class="bg-stone-50 p-3 rounded border border-stone-200"><strong>Message Injection Attacks:</strong> Malicious content in A2A messages processed by vulnerable receiving agents. Autonomy amplifies impact.</div>
+                        <div class="bg-stone-50 p-3 rounded border border-stone-200"><strong>A2A Task Replay:</strong> Captured task requests replayed without adequate protection, leading to duplicate actions.</div>
+                        <div class="bg-stone-50 p-3 rounded border border-stone-200"><strong>Protocol Downgrade Attacks:</strong> Forcing communication over older, less secure A2A protocol versions.</div>
+                        <div class="bg-stone-50 p-3 rounded border border-stone-200"><strong>Data Leakage:</strong> Sensitive info shared due to permissive access controls or poor data classification.</div>
+                        <div class="bg-stone-50 p-3 rounded border border-stone-200"><strong>Misconfigurations/Over-exposure:</strong> A2A endpoints exposed without proper authentication or CORS policies.</div>
+                    </div>
+                </div>
+
+                <div id="compounded-risks-content" class="tab-content space-y-4">
+                    <h3 class="text-xl font-semibold text-sky-600">Compounded Risks in Combined MCP-A2A Deployments</h3>
+                    <ul class="list-disc list-inside space-y-2">
+                        <li><strong>Exploitation Chain:</strong> A2A compromise (e.g., agent spoofing) &rarr; compromised agent instructed to misuse MCP tools (e.g., exfiltrate data).</li>
+                        <li><strong>Data Laundering/Propagation:</strong> Data exfiltrated via MCP by one agent, then passed to unauthorized entities via A2A.</li>
+                        <li><strong>Cross-Tool/Agent Contamination:</strong> Breach in one MCP server/tool cascades across A2A network; compromised agent provides false info.</li>
+                        <li><strong>Supply Chain Attacks:</strong> Vulnerabilities in third-party A2A agents, MCP servers, or tools.</li>
+                        <li><strong>Increased Blast Radius:</strong> A localized MCP vulnerability becomes network-wide if the agent is part of an A2A collaboration. (e.g., compromised Orchestrator agent in HR workflow directs IT agent to misuse MCP tools for malicious provisioning).</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section id="modeling" class="content-section">
+            <h2 class="text-2xl font-bold text-sky-700 mb-4">Systematic Threat Modeling</h2>
+            <div class="bg-white p-6 rounded-lg shadow space-y-6">
+                <p class="text-lg">Effective security requires proactive threat modeling, adapting traditional methods for AI agent systems. This involves understanding data flows, model vulnerabilities, adversarial inputs, and agent autonomy.</p>
+
+                <div>
+                    <h3 class="text-xl font-semibold text-sky-600 mb-2">Adapting STRIDE (Spoofing, Tampering, Repudiation, Information Disclosure, Denial of Service, Elevation of Privilege)</h3>
+                    <p class="mb-3">STRIDE helps categorize threats in MCP/A2A contexts. Explore Table 3 from the report interactively:</p>
+                    <div class="overflow-x-auto border border-stone-300 rounded-lg">
+                        <table class="min-w-full divide-y divide-stone-200">
+                            <thead class="bg-stone-100">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-neutral-600 uppercase">STRIDE Category</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-neutral-600 uppercase">MCP Example</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-neutral-600 uppercase">A2A Example</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-neutral-600 uppercase">Mitigation Hint</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-stone-200 text-sm">
+                                <tr><td class="px-4 py-2 font-semibold">Spoofing</td><td class="px-4 py-2">Fake MCP server tricks agent.</td><td class="px-4 py-2">Forged Agent Card on typosquatted domain.</td><td class="px-4 py-2">Strong mutual AuthN, secure registries.</td></tr>
+                                <tr><td class="px-4 py-2 font-semibold">Tampering</td><td class="px-4 py-2">MCP tool's JSON schema modified on compromised server.</td><td class="px-4 py-2">A2A message content altered in transit (MitM).</td><td class="px-4 py-2">Data integrity checks (signatures), TLS, immutable tool defs.</td></tr>
+                                <tr><td class="px-4 py-2 font-semibold">Repudiation</td><td class="px-4 py-2">Agent invokes destructive MCP tool; poor logging prevents proof.</td><td class="px-4 py-2">Agent denies sending critical A2A message due to no signing/logging.</td><td class="px-4 py-2">Tamper-evident logging, message signatures.</td></tr>
+                                <tr><td class="px-4 py-2 font-semibold">Information Disclosure</td><td class="px-4 py-2">MCP tool includes sensitive data in verbose error message.</td><td class="px-4 py-2">A2A messages with PII over unencrypted channel.</td><td class="px-4 py-2">Encryption, access controls, output sanitization.</td></tr>
+                                <tr><td class="px-4 py-2 font-semibold">Denial of Service</td><td class="px-4 py-2">Compromised agent floods MCP server with tool requests.</td><td class="px-4 py-2">Attacker floods A2A server with spurious task requests.</td><td class="px-4 py-2">Rate limiting, traffic filtering, resilient infra.</td></tr>
+                                <tr><td class="px-4 py-2 font-semibold">Elevation of Privilege</td><td class="px-4 py-2">Agent exploits MCP tool vulnerability to run commands with server privileges.</td><td class="px-4 py-2">Compromised A2A agent manipulates task delegation for unauthorized control.</td><td class="px-4 py-2">PoLP, strong AuthZ, input validation, sandboxing.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 class="text-xl font-semibold text-sky-600 mb-2">Leveraging MAESTRO</h3>
+                    <p>MAESTRO (Multi-Agent Environment, Security, Threat, Risk, and Outcome) offers an AI-centric approach with a 7-layer model for analysis, particularly useful for the MCP/A2A ecosystem by focusing on agent frameworks and ecosystem interactions.</p>
+                    <ul class="list-decimal list-inside ml-4 text-sm space-y-1 bg-stone-50 p-3 rounded border border-stone-200">
+                        <li>Foundation Models</li>
+                        <li>Data Operations</li>
+                        <li>Agent Frameworks (MCP/A2A here)</li>
+                        <li>Deployment and Infrastructure</li>
+                        <li>Evaluation and Observability</li>
+                        <li>Security and Compliance</li>
+                        <li>Agent Ecosystem</li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3 class="text-xl font-semibold text-sky-600 mb-3">Practical Threat Modeling Workflow</h3>
+                    <div class="space-y-3">
+                        <div class="diagram-box">1. Define Scope & Decompose System (Map architecture, DFDs)</div>
+                        <div class="flex justify-center"><span class="diagram-arrow text-2xl">&darr;</span></div>
+                        <div class="diagram-box">2. Identify Assets, Trust Boundaries, Data Flows</div>
+                        <div class="flex justify-center"><span class="diagram-arrow text-2xl">&darr;</span></div>
+                        <div class="diagram-box">3. Threat Enumeration (STRIDE, MAESTRO, ATT&CK for AI)</div>
+                        <div class="flex justify-center"><span class="diagram-arrow text-2xl">&darr;</span></div>
+                        <div class="diagram-box">4. Analyze Vulnerabilities</div>
+                        <div class="flex justify-center"><span class="diagram-arrow text-2xl">&darr;</span></div>
+                        <div class="diagram-box">5. Assess Risk & Prioritize (DREAD model - Discoverability is high for public components)</div>
+                        <div class="flex justify-center"><span class="diagram-arrow text-2xl">&darr;</span></div>
+                        <div class="diagram-box">6. Develop Mitigation Strategies</div>
+                        <div class="flex justify-center"><span class="diagram-arrow text-2xl">&darr;</span></div>
+                        <div class="diagram-box">7. Review and Iterate (Ongoing process)</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="mitigations" class="content-section">
+            <h2 class="text-2xl font-bold text-sky-700 mb-4">Fortifying MCP & A2A: Multi-Layered Security</h2>
+            <div class="bg-white p-6 rounded-lg shadow space-y-6">
+                <p class="text-lg">A robust security posture requires a defense-in-depth approach, addressing security from design through deployment and operations. This includes secure development, strong IAM, input/output controls, network security, monitoring, and supply chain security.</p>
+                
+                <div class="accordion-item">
+                    <button class="accordion-button w-full text-left font-semibold text-xl text-sky-700 hover:text-sky-800 flex justify-between items-center py-2 border-b border-stone-300">Secure Design & Development <span>&#9660;</span></button>
+                    <div class="accordion-content mt-2 text-sm space-y-1">
+                        <p>Code signing for MCP servers, immutable tool definitions (prevents tool poisoning), security testing of interfaces, mandatory package identity, secure coding (OWASP), rigorous input validation.</p>
+                    </div>
+                </div>
+                <div class="accordion-item">
+                    <button class="accordion-button w-full text-left font-semibold text-xl text-sky-700 hover:text-sky-800 flex justify-between items-center py-2 border-b border-stone-300">Robust Authentication, Authorization & IAM <span>&#9660;</span></button>
+                    <div class="accordion-content mt-2 text-sm space-y-1">
+                        <p>Strong AuthN (OAuth 2.0, JWTs, mTLS), granular AuthZ (PoLP), secure credential management (Vault, KMS), decouple identity from MCP server logic (use IdPs).</p>
+                    </div>
+                </div>
+                <div class="accordion-item">
+                    <button class="accordion-button w-full text-left font-semibold text-xl text-sky-700 hover:text-sky-800 flex justify-between items-center py-2 border-b border-stone-300">Input Validation, Output Sanitization & Secure Tool Invocation <span>&#9660;</span></button>
+                    <div class="accordion-content mt-2 text-sm space-y-1">
+                        <p>Strict validation of all inputs (MCP tool params, A2A messages), sanitize outputs from MCP tools (prevents hidden commands, cross-tool contamination), ensure tool invocations use verified parameters.</p>
+                    </div>
+                </div>
+                <div class="accordion-item">
+                    <button class="accordion-button w-full text-left font-semibold text-xl text-sky-700 hover:text-sky-800 flex justify-between items-center py-2 border-b border-stone-300">Network Segmentation, Traffic Control & API Security <span>&#9660;</span></button>
+                    <div class="accordion-content mt-2 text-sm space-y-1">
+                        <p>Control network exposure (firewalls, security groups), micro-segmentation (service meshes), API security (rate limiting, WAF/WAAS for MCP, API gateway policies), TLS enforcement.</p>
+                    </div>
+                </div>
+
+                <h3 class="text-xl font-semibold text-sky-600 mt-4">Recommended Security Controls (Summary from Table 4)</h3>
+                <p class="mb-3">The report details numerous controls across various domains. The chart below shows the distribution of specific control examples mentioned in Table 4.</p>
+                <div class="chart-container bg-stone-50 p-4 rounded-lg border border-stone-200">
+                    <canvas id="securityControlsChart"></canvas>
+                </div>
+                <p class="text-xs text-center text-neutral-500 mt-1">Bar chart visualizing count of example controls per domain from Table 4 of the report.</p>
+
+
+                <div class="accordion-item mt-4">
+                    <button class="accordion-button w-full text-left font-semibold text-xl text-sky-700 hover:text-sky-800 flex justify-between items-center py-2 border-b border-stone-300">Comprehensive Monitoring, Logging & Anomaly Detection <span>&#9660;</span></button>
+                    <div class="accordion-content mt-2 text-sm space-y-1">
+                        <p>Detailed logging (MCP tool calls, A2A messages, auth events), auditability, anomaly detection (behavioral analytics for "confused deputy" attacks), SIEM integration.</p>
+                    </div>
+                </div>
+                <div class="accordion-item">
+                    <button class="accordion-button w-full text-left font-semibold text-xl text-sky-700 hover:text-sky-800 flex justify-between items-center py-2 border-b border-stone-300">Securing the Supply Chain <span>&#9660;</span></button>
+                    <div class="accordion-content mt-2 text-sm space-y-1">
+                        <p>Vet external components (3rd party agents, MCP servers), prefer trusted registries, dependency scanning (SCA), secure build pipelines (DevSecOps).</p>
+                    </div>
+                </div>
+                 <div class="accordion-item">
+                    <button class="accordion-button w-full text-left font-semibold text-xl text-sky-700 hover:text-sky-800 flex justify-between items-center py-2 border-b border-stone-300">Implementing Principle of Least Privilege (PoLP) <span>&#9660;</span></button>
+                    <div class="accordion-content mt-2 text-sm space-y-1">
+                        <p>Agents access only necessary tools/data. MCP tools operate with minimum permissions. A2A interactions within authorized scope. Declarative capabilities for MCP servers aid PoLP.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="future" class="content-section">
+            <h2 class="text-2xl font-bold text-sky-700 mb-4">Advanced Measures, Future Outlook & Conclusion</h2>
+            <div class="bg-white p-6 rounded-lg shadow space-y-6">
+                <p class="text-lg">As MCP and A2A mature, advanced security measures and evolving best practices are vital. The AI agent security landscape is dynamic, requiring continuous adaptation.</p>
+
+                <div>
+                    <h3 class="text-xl font-semibold text-sky-600 mb-2">AI-Specific Defenses</h3>
+                    <ul class="list-disc list-inside space-y-1">
+                        <li><span class="font-semibold">Adversarial Robustness:</span> Techniques like adversarial training to make LLMs more resilient to prompt injection.</li>
+                        <li><span class="font-semibold">Enhanced Guardrails:</span> Runtime safety mechanisms to prevent harmful actions, though attackers constantly seek bypasses.</li>
+                        <li><span class="font-semibold">Confidential Computing:</span> Secure enclaves (Intel SGX, AMD SEV) to protect agent execution and data.</li>
+                        <li><span class="font-semibold">AI for AI Security:</span> Using ML for sophisticated anomaly detection or vulnerability analysis.</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-xl font-semibold text-sky-600 mb-2">Emerging Standards & Industry Best Practices</h3>
+                     <ul class="list-disc list-inside space-y-1">
+                        <li><span class="font-semibold">Protocol Evolution:</span> Security considerations incorporated into future MCP/A2A versions. Rapid adoption by industry (OpenAI, Google DeepMind, Microsoft) may accelerate this but risks premature standardization on designs with weaknesses.</li>
+                        <li><span class="font-semibold">Open Source & Community:</span> Vital for hardening the ecosystem.</li>
+                        <li><span class="font-semibold">Industry Collaboration & Certification:</span> Essential for robust best practices; potential for future certification programs.</li>
+                        <li><span class="font-semibold">Standardized Security Extensions:</span> For fine-grained authorization or verifiable data provenance.</li>
+                    </ul>
+                </div>
+                 <div>
+                    <h3 class="text-xl font-semibold text-sky-600 mb-2">Role of Automated Security Solutions</h3>
+                     <ul class="list-disc list-inside space-y-1">
+                        <li><span class="font-semibold">Specialized WAAS for MCP/A2A:</span> Generic WAAS may be insufficient; tools with intelligent protocol validation are needed.</li>
+                        <li><span class="font-semibold">Continuous Monitoring & Threat Intelligence:</span> Automated tools for real-time threat detection.</li>
+                        <li><span class="font-semibold">Security in CI/CD Pipelines:</span> Integrate SAST, DAST, SCA, IAST, and threat modeling validation into DevSecOps.</li>
+                    </ul>
+                </div>
+
+                <div class="mt-6 pt-4 border-t border-stone-300">
+                    <h3 class="text-xl font-semibold text-sky-600 mb-3">Conclusion & Strategic Recommendations</h3>
+                    <p>MCP and A2A are pivotal for next-gen AI but bring substantial security challenges. Securing them is a strategic imperative requiring a proactive, multi-layered, AI-aware strategy.</p>
+                    <div class="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                        <h4 class="text-lg font-semibold text-amber-700">Key Strategic Recommendations:</h4>
+                        <ol class="list-decimal list-inside mt-2 text-neutral-700 space-y-1">
+                            <li>Adopt AI-Specific Threat Modeling (STRIDE, MAESTRO).</li>
+                            <li>Prioritize Secure by Design Principles.</li>
+                            <li>Implement Robust Identity and Access Management (IAM).</li>
+                            <li>Secure the Cloud-Native Infrastructure.</li>
+                            <li>Invest in Specialized Security Tooling and Practices.</li>
+                            <li>Foster a Security-Aware Culture.</li>
+                            <li>Stay Informed and Adapt.</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="text-center text-sm text-neutral-500 py-8">
+        Interactive Application based on the report "Securing the Nexus: Cloud-Native Threat Modeling and Mitigation for Model Context Protocol (MCP) in Agent-to-Agent (A2A) Communications".
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const navLinks = document.querySelectorAll('.nav-link');
+            const contentSections = document.querySelectorAll('.content-section');
+            const tabButtons = document.querySelectorAll('.tab-button');
+            const accordionButtons = document.querySelectorAll('.accordion-button');
+
+            // Initial active nav link
+            const initialSection = 'overview';
+            document.querySelector(`.nav-link[data-target="${initialSection}"]`).classList.add('font-bold', 'text-amber-300');
+
+            navLinks.forEach(link => {
+                link.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const targetId = this.dataset.target;
+
+                    navLinks.forEach(nav => nav.classList.remove('font-bold', 'text-amber-300'));
+                    this.classList.add('font-bold', 'text-amber-300');
+
+                    contentSections.forEach(section => {
+                        if (section.id === targetId) {
+                            section.classList.add('active');
+                        } else {
+                            section.classList.remove('active');
+                        }
+                    });
+                    window.scrollTo(0, 0);
+                });
+            });
+
+            tabButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const tabTarget = this.dataset.tab;
+                    const parent = this.closest('.bg-white'); // Find the parent container of tabs and content for scope
+                    
+                    parent.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active', 'bg-sky-700', 'text-white'));
+                    this.classList.add('active', 'bg-sky-700', 'text-white');
+                    
+                    parent.querySelectorAll('.tab-content').forEach(content => {
+                        if (content.id === `${tabTarget}-content`) {
+                            content.classList.add('active');
+                        } else {
+                            content.classList.remove('active');
+                        }
+                    });
+                });
+            });
+            
+            accordionButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    this.classList.toggle('active');
+                    const content = this.nextElementSibling;
+                    if (content.style.maxHeight) {
+                        content.style.maxHeight = null;
+                        this.querySelector('span').innerHTML = '&#9660;'; // Down arrow
+                    } else {
+                        content.style.maxHeight = content.scrollHeight + "px";
+                        this.querySelector('span').innerHTML = '&#9650;'; // Up arrow
+                    }
+                });
+            });
+
+            // Chart.js for Security Controls
+            const securityControlsCtx = document.getElementById('securityControlsChart');
+            if (securityControlsCtx) {
+                const securityControlsData = {
+                    labels: ['IAM', 'Network Security', 'Data Security', 'API Security (Specific)', 'Logging & Monitoring', 'Secure Development', 'Incident Response'],
+                    datasets: [{
+                        label: 'Number of Example Controls (from Table 4)',
+                        data: [3, 3, 3, 2, 2, 3, 1], // Counts from report's Table 4 structure
+                        backgroundColor: [
+                            'rgba(59, 130, 246, 0.7)',  // Blue
+                            'rgba(16, 185, 129, 0.7)', // Emerald
+                            'rgba(239, 68, 68, 0.7)',   // Red
+                            'rgba(245, 158, 11, 0.7)',  // Amber
+                            'rgba(139, 92, 246, 0.7)',  // Violet
+                            'rgba(236, 72, 153, 0.7)',  // Pink
+                            'rgba(107, 114, 128, 0.7)'  // Gray
+                        ],
+                        borderColor: [
+                            'rgba(59, 130, 246, 1)',
+                            'rgba(16, 185, 129, 1)',
+                            'rgba(239, 68, 68, 1)',
+                            'rgba(245, 158, 11, 1)',
+                            'rgba(139, 92, 246, 1)',
+                            'rgba(236, 72, 153, 1)',
+                            'rgba(107, 114, 128, 1)'
+                        ],
+                        borderWidth: 1
+                    }]
+                };
+                new Chart(securityControlsCtx, {
+                    type: 'bar',
+                    data: securityControlsData,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    stepSize: 1
+                                }
+                            },
+                            x: {
+                                ticks: {
+                                     callback: function(value, index, values) {
+                                        const label = this.getLabelForValue(value);
+                                        if (label.length > 15) { // Max length before wrapping
+                                            return label.match(/.{1,15}/g); // Split into chunks of 15
+                                        }
+                                        return label;
+                                    }
+                                }
+                            }
+                        },
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top',
+                            },
+                            tooltip: {
+                                enabled: true
+                            }
+                        }
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>
